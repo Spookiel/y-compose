@@ -23,7 +23,7 @@ import itertools as it
 import os
 import re
 import signal
-from subprocess import PIPE, Popen, TimeoutExpired, CREATE_NEW_PROCESS_GROUP
+from subprocess import PIPE, Popen, TimeoutExpired
 
 from sympy import And, Not, Or, symbols, true, simplify_logic
 
@@ -180,7 +180,6 @@ def invoke_mona():
         args=command,
         stdout=PIPE,
         stderr=PIPE,
-        creationflags=CREATE_NEW_PROCESS_GROUP,
         shell=True,
         encoding="utf-8",
     )

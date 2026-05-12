@@ -260,8 +260,9 @@ def get_composed_policy(qmodel:GoalOrientedBase, goal, condition, policy, safe_p
     return policy_replacement(starting_loc)
 
 if __name__ == "__main__":
+    print("HELLO")
     elk_name = "office"
-    pretrained = False
+    pretrained = True
     room = load_room("saved_disc", f"{elk_name}.pt", 4)
     room.start()
     starting_region = None
@@ -280,8 +281,8 @@ if __name__ == "__main__":
         torch.save({"joint": qmodel.Q_joint, "subgoal": qmodel.Q_subgoal}, f"project/static/policy/{elk_name}.pt")
     
     composed_policy, policy, safe_policy = task.policy_composition(qmodel)
-    # task.test_policy(qmodel, restriction=starting_region, epsilon=0, visualize=True)
-    # task.test_policy(qmodel, start_state=(17,2), epsilon=0, visualize=True)
+    task.test_policy(qmodel, restriction=starting_region, epsilon=0, visualize=True)
+    task.test_policy(qmodel, start_state=(3,2), epsilon=0, visualize=True)
     for i, p in enumerate([composed_policy]):
         room.draw_policy(p, fn=f"{task.name}_{2}")
 

@@ -4,7 +4,7 @@ from ltlf_tools.parser.ltlf import LTLfParser
 from ltlf_tools.ltlf2dfa import MonaProgram, ter2symb, simplify_guard, symbols, output2dot
 
 CDIR = os.getcwd()  # .../y-compose/
-MONA_PATH = f"{CDIR}/project/ltlf_tools/mona.exe"
+MONA_PATH = f"{CDIR}/project/ltlf_tools/mona"
 formula_parser = LTLfParser()
 
 def parse_dfa(p_formula, dfa_text):
@@ -121,13 +121,26 @@ def formula_to_dfa(ifml, file_name):
     except IOError:
         print("[ERROR]: Problem opening the mona file!")
     cmd = f'{MONA_PATH} -q -u -w {ipath} > {opath}'
-    if os.system(cmd) == 0:
+    print(cmd)
+    res = os.system(cmd)
+    print(res, "HERE", cmd)
+    if res == 0:
+        print("YAYYY")
+        print(opath)
         with open(opath, "r") as f:
             mona_output = f.read()
+            print(mona_output, "HIIIII")
         return parse_dfa(p_formula, mona_output), (mona_in, mona_output) 
     return ({}, []), mona_in
 
 if __name__ == "__main__":
+    # /home/lukem/Projects/FYP/y-compose/project/static/mona_files/luke_test.mona
     formula = formula_parser("!a | !b")
+    new = "G(!o) & (((F a) | (F b)) T (F c))"
     # print(formula)
-    print(formula.to_nnf())
+
+    # a T b === F (a ^ XF b)
+    # G(!o) & F (((F a) || (F b)) &&  X F (F c))
+    pdfa, mona = formula_to_dfa(new, "luke_test")
+    print(mona[1])
+    # print(formula.to_nnf())

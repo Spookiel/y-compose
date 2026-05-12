@@ -147,7 +147,7 @@ class DFA_Edge:
         sequence, trace = conjunction_find_shortest_goal_sequence_optimized(
             shared_condition_zone, conjunction_goals, tuple(start_loc), qmodel)
         
-        # print(self.formula, start_loc, len(trace))
+        print(self.formula, start_loc, len(trace))
         return [list(goals.keys())[s] for s in sequence], trace
 
             
@@ -180,4 +180,4 @@ if __name__ == "__main__":
         torch.save({"joint": qmodel.Q_joint, "subgoal": qmodel.Q_subgoal}, f"project/static/policy/{elk_name}.pt")
     
     edge = DFA_Edge(sympy.And(sympy.Symbol("t2"), sympy.Not(sympy.Symbol("t1"))))
-    edge.policy_composition(qmodel, atasks, np.array([12,3]))
+    print(edge.policy_composition(qmodel, atasks, np.array([3,3])))

@@ -50,7 +50,7 @@ if __name__ == "__main__":
     elk_name = "office"
     room = load_room("saved_disc", f"{elk_name}.pt", 4)
     planning = Y_Compose(room, elk_name, "G(!t3) & (((t4 | t5) T t1) & (t2 T t1))", 
-        {"t1": "F(goal_1)", "t2": "F(goal_2)", "t5": "F(goal_5)", "t3": "F(goal_3)", "t4": "F(goal_4)"}, pretrained=True)
+        {"t1": "F(goal_1)", "t2": "F(goal_2)", "t5": "F(goal_5)", "t3": "F(goal_3)", "t4": "F(goal_4)"}, pretrained=False)
     print(planning.dfa_task)
 
     constant_start = np.array([10, 3])

@@ -39,6 +39,7 @@ class DFA_Task:
         self.atomic_tasks = atomic_tasks
         
         dfa, mona = formula_to_dfa(formula, name)
+        print(formula, name)
         self.dfa_matrix = dfa[1]
         self.n_states = len(self.dfa_matrix)
         self.accepting_states = [s-1 for s in dfa[0]['accepting_states']]
