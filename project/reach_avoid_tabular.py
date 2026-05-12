@@ -45,7 +45,6 @@ class Room:
             loc = random.choice(region)
         else:
             loc = random.choice(self._avail_locs)
-
         self.loc = loc
         self._trace = [self.loc]
         return self.loc
@@ -216,6 +215,6 @@ def load_room(mode, name, n_actions=8):
 if __name__ == "__main__":
     room = load_room("saved_cont", "road.pt")
     room.start(start_state=[1,2])
-    room.visual()
+    # room.visual()
 
 

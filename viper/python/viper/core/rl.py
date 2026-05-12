@@ -35,7 +35,6 @@ def get_rollout(env, policy, render):
 
         # Update (and remove LazyFrames)
         obs = np.array(next_obs)
-
     return rollout
 
 def get_rollouts(env, policy, render, n_batch_rollouts):

@@ -262,7 +262,7 @@ def get_composed_policy(qmodel:GoalOrientedBase, goal, condition, policy, safe_p
 if __name__ == "__main__":
     print("HELLO")
     elk_name = "office"
-    pretrained = True
+    pretrained = False
     room = load_room("saved_disc", f"{elk_name}.pt", 4)
     room.start()
     starting_region = None
@@ -277,7 +277,7 @@ if __name__ == "__main__":
         qmodel.Q_subgoal = policy["subgoal"]
     else:
         subgoal, joint = qmodel.train_episodes(num_episodes=85, num_iterations=4, max_steps_per_episode=150)
-        # qmodel.plot_training_results(subgoal, joint, elk_name)
+        qmodel.plot_training_results(subgoal, joint, elk_name)
         torch.save({"joint": qmodel.Q_joint, "subgoal": qmodel.Q_subgoal}, f"project/static/policy/{elk_name}.pt")
     
     composed_policy, policy, safe_policy = task.policy_composition(qmodel)
