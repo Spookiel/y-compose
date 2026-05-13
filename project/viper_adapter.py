@@ -12,16 +12,12 @@ class ActionMapper:
     """
     def __init__(self, n_actions=4):
         self.n_actions = n_actions
-        # Default Mapping for 4 actions:
-        # Room indices (y-compose): 0:North, 1:East, 2:South, 3:West
-        # VIPER student indices: 0:West(Left), 1:South(Down), 2:East(Right), 3:North(Up)
-        if n_actions == 4:
-            self.room_to_viper = {0: 3, 1: 2, 2: 1, 3: 0}
-            self.viper_to_room = {3: 0, 2: 1, 1: 2, 0: 3}
-        else:
-            # Identity mapping for other configurations (e.g. 8 actions)
-            self.room_to_viper = {i: i for i in range(n_actions)}
-            self.viper_to_room = {i: i for i in range(n_actions)}
+        # By default, use identity mapping to ensure student indices align with 
+        # the environment's action_map and visualization tools (draw_policy).
+        # This can be overridden ifDistillation is performed across different 
+        # action spaces.
+        self.room_to_viper = {i: i for i in range(n_actions)}
+        self.viper_to_room = {i: i for i in range(n_actions)}
 
     def to_room(self, viper_action):
         return self.viper_to_room.get(int(viper_action), int(viper_action))
