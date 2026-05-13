@@ -61,7 +61,7 @@ class Room:
         out_of_range = tuple(new_loc[i] < 0 or new_loc[i] >= self.shape[i] for i in range(self.state_dim))
         if any(out_of_range):
             return self.loc, 0
-        label = self.terrain[tuple(new_loc)]
+        label = self.terrain[int(new_loc[0]), int(new_loc[1])]
         if not label:   # Reaching an obstacle
             return self.loc, 0
 
@@ -216,5 +216,3 @@ if __name__ == "__main__":
     room = load_room("saved_cont", "road.pt")
     room.start(start_state=[1,2])
     # room.visual()
-
-
