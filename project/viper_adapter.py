@@ -134,3 +134,50 @@ class EpsilonGreedyDTPolicy(DTPolicy):
         if hasattr(self, 'tree'):
             clone.tree = self.tree
         return clone
+
+class PolicyEvaluator:
+    """Utility class for evaluating and visualizing extracted policies."""
+    
+    @staticmethod
+    def test_exhaustive(env: RoomGymWrapper, policy: DTPolicy, horizon: int = None):
+        """Tests the policy from every non-obstacle starting cell in the grid."""
+        room = env.unwrapped
+        h, w = room.shape
+        results = np.zeros((h, w), dtype=int) # 0: Untestable (Wall), 1: Success, -1: Failed
+        if horizon is None:
+            horizon = env.max_steps
+        
+        traversable_cells = torch.nonzero(room.terrain > 0).tolist()
+        success_count = 0
+        
+        for r, c in traversable_cells:
+            obs = env.reset(start_state=np.array([r, c]))
+            done = False
+            steps = 0
+            reached_goal = False
+            
+            while not done and steps < horizon:
+                action = policy.predict(np.array([obs]))[0]
+                obs, reward, done, info = env.step(action)
+                if reward == 100.0:
+                    reached_goal = True
+                    done = True
+                steps += 1
+                
+            results[r, c] = 1 if reached_goal else -1
+            if reached_goal: success_count += 1
+                
+        total_testable = len(traversable_cells)
+        print(f"Exhaustive Test Summary: {success_count}/{total_testable} ({success_count/total_testable:.2%}) success rate.")
+        return results
+
+    @staticmethod
+    def visualize_dt_policy(dt_policy: DTPolicy, room: Room, goal_mask: torch.Tensor, filename: str):
+        """Generates a Q-value-like tensor from a DTPolicy for visualization."""
+        q_values_for_viz = torch.zeros(room.shape + (room.n_actions,))
+        for r in range(room.shape[0]):
+            for c in range(room.shape[1]):
+                state = np.array([[r, c]])
+                action = dt_policy.predict(state)[0]
+                q_values_for_viz[r, c, action] = 1.0
+        room.draw_policy(q_values_for_viz, mask=goal_mask, fn=filename)
