@@ -1,0 +1,5 @@
+#(F(goal_1) & F(goal_2));
+var2 $ where ~ex1 p where true: p notin $ & p+1 in $;
+allpos $;
+var2 GOAL_1, GOAL_2;
+((ex1 v_1: v_1 in $ & 0<=v_1&v_1<=max($) & (v_1 in GOAL_1)) & (ex1 v_2: v_2 in $ & 0<=v_2&v_2<=max($) & (v_2 in GOAL_2)));
