@@ -4,7 +4,7 @@ import io
 
 from extension.env import GridWorldEnv, TraceableEnv
 from extension.base import State, Action
-from extension.goal import GoalRegion
+from extension.goal import TerminalRegion
 from extension.proposition import Proposition
 from extension.render import GridWorldRenderer
 
@@ -17,7 +17,7 @@ def test_create_trace_gif():
     
     # 2. Setup Goals & Renderer
     goals = [
-        GoalRegion(Proposition.REACH_ZONE_A, lambda s: 4 <= s.x <= 5 and 4 <= s.y <= 5),
+        TerminalRegion(Proposition.REACH_ZONE_A, lambda s: 4 <= s.x <= 5 and 4 <= s.y <= 5),
     ]
     renderer = GridWorldRenderer(inner_env, goals)
     

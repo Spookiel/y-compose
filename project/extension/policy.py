@@ -7,6 +7,9 @@ from extension.base import RMAX, RMIN, State, Action
 from extension.env import StepResult
 from extension.algebra import DiscreteQFunction
 import random
+import torch
+import os
+
 class WVFMultiGoalAgent(GoalOrientedPolicy):
     def __init__(
         self, 
@@ -31,6 +34,45 @@ class WVFMultiGoalAgent(GoalOrientedPolicy):
         self.q_tables: Dict[Proposition, Dict[Tuple[State, Action], float]] = {
             prop: defaultdict(float) for prop in self.all_propositions
         }
+
+    def save(self, filepath: str) -> None:
+        """Saves the agent's Q-tables and configuration to a .pt file."""
+        # Convert defaultdict to regular dict for serialization
+        serializable_q_tables = {
+            prop.name: dict(table) for prop, table in self.q_tables.items()
+        }
+        
+        checkpoint = {
+            'q_tables': serializable_q_tables,
+            'alpha': self.alpha,
+            'gamma': self.gamma,
+            'epsilon': self.epsilon
+        }
+        
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        torch.save(checkpoint, filepath)
+        print(f"Agent saved to {filepath}")
+
+    def load(self, filepath: str) -> None:
+        """Loads the agent's Q-tables and configuration from a .pt file."""
+        checkpoint = torch.load(filepath, weights_only=False)
+        
+        serializable_q_tables = checkpoint['q_tables']
+        
+        # Reconstruct the Q-tables with Proposition enums as keys
+        prop_map = {p.name: p for p in Proposition}
+        
+        for prop_name, table in serializable_q_tables.items():
+            if prop_name in prop_map:
+                prop = prop_map[prop_name]
+                # Ensure the proposition is in our current all_propositions
+                if prop in self.all_propositions:
+                    self.q_tables[prop] = defaultdict(float, table)
+        
+        self.alpha = checkpoint.get('alpha', self.alpha)
+        self.gamma = checkpoint.get('gamma', self.gamma)
+        self.epsilon = checkpoint.get('epsilon', self.epsilon)
+        print(f"Agent loaded from {filepath}")
 
     def get_q_function(self, prop: Proposition) -> DiscreteQFunction:
         """Returns a modular QFunction wrapper for a learned proposition's Q-table."""

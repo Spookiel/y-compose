@@ -1,7 +1,7 @@
 import os
 from extension.env import GridWorldEnv
 from extension.base import State, Action
-from extension.goal import GoalRegion
+from extension.goal import TerminalRegion
 from extension.proposition import Proposition
 from extension.render import GridWorldRenderer
 
@@ -46,8 +46,8 @@ def test_gridworld():
     # 4. Test Rendering
     print("--- Testing GridWorldRenderer ---")
     goals = [
-        GoalRegion(Proposition.REACH_ZONE_A, lambda s: 4 <= s.x <= 5 and 4 <= s.y <= 5),
-        GoalRegion(Proposition.REACH_ZONE_B, lambda s: 0 <= s.x <= 1 and 4 <= s.y <= 5)
+        TerminalRegion(Proposition.REACH_ZONE_A, lambda s: 4 <= s.x <= 5 and 4 <= s.y <= 5),
+        TerminalRegion(Proposition.REACH_ZONE_B, lambda s: 0 <= s.x <= 1 and 4 <= s.y <= 5)
     ]
     
     renderer = GridWorldRenderer(env, goals)

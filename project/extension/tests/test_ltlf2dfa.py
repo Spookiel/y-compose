@@ -1,12 +1,7 @@
 import os
-import sys
-import torch
-import pytest
-import networkx as nx
-import pydot
-from PIL import Image
 import io
-from ltlf2dfa.parser.ltlf import LTLfParser
+import torch
+from PIL import Image
 
 from extension.base import State, Action
 from extension.env import GridWorldEnv, TraceableEnv
@@ -15,119 +10,84 @@ from extension.proposition import Proposition
 from extension.policy import WVFMultiGoalAgent
 from extension.learning import train_goal_oriented
 from extension.render import GridWorldRenderer
-from extension.algebra import extract_formal_skill, expr_to_qfunction
+from extension.ltlf_task import LTLfTask
+from extension.dfa_tracker import DFATracker
 
 def test_sequential_ltlf_policy():
-    print("--- Testing Sequential LTLf Policy (with ltlf2dfa & networkx) ---")
+    print("--- Testing Sequential LTLf Policy (Refactored) ---")
     
-    # 1. Setup Environment & Goals
+    # 1. Setup Environment
     env = GridWorldEnv(x_min=0, x_max=7, y_min=0, y_max=7)
     
-    # 2. Define Goals
-    # Goal A at x=3, acting as a partial wall
+    # 2. Define Regions & Task Predicates
     goal_a_pred = lambda s: s.x == 3 and 1 <= s.y <= 7
-    goal_a = TerminalRegion(Proposition.REACH_ZONE_A, goal_a_pred)
+    goal_b_pred = lambda s: s.x == 7 and s.y == 0
+    goal_c_pred = lambda s: 1 <= s.x <= 4 and 0 <= s.y <= 2
 
-    # Goal B at bottom-right (7,0)
-    goal_b_pred =lambda s: s.x == 7 and s.y == 0
-    goal_b = TerminalRegion(Proposition.REACH_ZONE_B, goal_b_pred)
+    # Physical terminal regions for MDP shared dynamics
+    terminals = [
+        TerminalRegion(Proposition.REACH_ZONE_A, goal_a_pred),
+        TerminalRegion(Proposition.REACH_ZONE_B, goal_b_pred),
+        TerminalRegion(Proposition.REACH_ZONE_C, goal_c_pred)
+    ]
 
-        # Goal B at bottom-right (7,0)
-    goal_c_pred =lambda s: 6 <= s.x <= 7 and 1 <= s.y <= 2
-    goal_c = TerminalRegion(Proposition.REACH_ZONE_C, goal_c_pred)
-
+    # Task mapping (including direct learning of negations)
+    tasks = {
+        Proposition.REACH_ZONE_A: goal_a_pred, 
+        Proposition.REACH_ZONE_B: goal_b_pred,
+        Proposition.REACH_ZONE_C: goal_c_pred,
+        Proposition.AVOID_ZONE_A: lambda s: not goal_a_pred(s), 
+        Proposition.AVOID_ZONE_B: lambda s: not goal_b_pred(s),
+        Proposition.AVOID_ZONE_C: lambda s: not goal_c_pred(s),
+    }
     
-    agent = WVFMultiGoalAgent(terminal_regions=[goal_a, goal_b, goal_c],tasks={
-                    Proposition.REACH_ZONE_A: goal_a_pred, 
-                    Proposition.REACH_ZONE_B: goal_b_pred,
-                    Proposition.REACH_ZONE_C: goal_c_pred,
+    agent = WVFMultiGoalAgent(terminal_regions=terminals, tasks=tasks, epsilon=0.1)
 
-                    Proposition.AVOID_ZONE_A: lambda s: not goal_a_pred(s), 
-                    Proposition.AVOID_ZONE_B: lambda s: not goal_b_pred(s),
-                    Proposition.AVOID_ZONE_C: lambda s: not goal_c_pred(s),
-                    },epsilon=0.1)
-    
-    # 3. Train
-    print("\nTraining agent on 8x8 grid with wall...")
-    # Increase episodes to handle the wall/8x8 space
-    train_goal_oriented(env, agent, episodes=500000, verbose=False)
-
-
-        # 5. Visualization
-    renderer = GridWorldRenderer(env, [goal_a, goal_b, goal_c])
-    
+    # 3. Train or Load
+    train = False
     static_dir = "static"
-    os.makedirs(static_dir, exist_ok=True)
- 
-    print("\nVisualizing base goals...")
-    for prop in agent.q_tables.keys():
-        prop_name = prop.name.lower()
-        print(f"  Rendering base goal: {prop_name}")
-        renderer.render_value_function(
-            agent.get_q_function(prop), 
-            prop_name, 
-            save_path=os.path.join(static_dir, f"wvf_base_{prop_name}.png"), 
-            show_policy=True
-        )
+    checkpoint_path = os.path.join(static_dir, "wvf_agent_test.pt")
 
-    # 3. Generate DFA using ltlf2dfa
-    formula_str = " (avoid_zone_b && avoid_zone_c) U (reach_zone_a && X F reach_zone_c)"
-    parser = LTLfParser()
-    formula = parser(formula_str)
-    
-    # Get DOT string from ltlf2dfa
-    dot_str = formula.to_dfa()
-    print(dot_str)
-    # Convert DOT to NetworkX MultiDiGraph
-    pydot_graph = pydot.graph_from_dot_data(dot_str)[0]
-    nx_graph = nx.drawing.nx_pydot.from_pydot(pydot_graph)
-    print(type(nx_graph))
-    print("\nDFA Nodes:")
-    for source_node, attr in nx_graph.nodes(data=True):
-        print(f"  {source_node}: {attr}")
-    print("\nDFA Edges:")
-    selfs = {}
-    for u, v, attr in nx_graph.edges(data=True):
-        if u == v:
-            if u not in selfs:
-                selfs[u] = attr.get('label')
-    for u, v, attr in nx_graph.edges(data=True):
-        if u != v and u in selfs:
-            prop: str = attr.get('label')
-            composed = extract_formal_skill(selfs[u], prop)['composed_logic']
-            print(f"  {u} -> {v}: {prop} composed {composed}")
+    if os.path.exists(checkpoint_path) and not train:
+        print(f"\nLoading pre-trained agent from {checkpoint_path}...")
+        agent.load(checkpoint_path)
+    else:
+        print("\nNo checkpoint found. Training agent...")
+        # Increase episodes to handle the wall/8x8 space
+        train_goal_oriented(env, agent, episodes=500000, verbose=False)
+        print(f"Saving trained agent to {checkpoint_path}...")
+        agent.save(checkpoint_path)
 
-            renderer.render_value_function(expr_to_qfunction(composed, agent), f"{composed}", save_path=os.path.join(static_dir, f"wvf_{composed}.png"), show_policy=True)
+    # 4. LTLf Task Composition
+    formula_str = "(avoid_zone_b && avoid_zone_c) U (reach_zone_a && X F reach_zone_b)"
+    print(f"\nComposing LTLf Task: {formula_str}")
+    ltlf_task = LTLfTask(formula_str, agent)
+    ltlf_task.print_dfa_info()
+
+    # 5. Visualizing Composition
+    static_dir = "static"
+    renderer = GridWorldRenderer(env, terminals)
+    ltlf_task.render_edge_policies(renderer, save_dir=static_dir)
     
-    # The initial state is automatically discovered from 'init' node
-    # tracker = DFATracker(nx_graph, agent)
-    # print(f"DFA Initial State: {tracker.current_state}")
-    
-    exit(0)
-    # 4. Simulation Loop
+    # 6. Simulation Loop
+    tracker = DFATracker(ltlf_task)
     trace_env = TraceableEnv(env)
-    current_state = State(x=0, y=0) # Start bottom-right
+    current_state = State(x=0, y=0) 
     frames = []
-    renderer = GridWorldRenderer(env, [goal_a, goal_b])
     
     max_steps = 200
     steps = 0
     print(f"\nStarting simulation from {current_state}...")
     
     while steps < max_steps:
-        # Get active policy from DFA edge
-        edges = tracker.graph.out_edges(tracker.current_state, data=True)
-        # Find advancement edge for logging
-        adv_edge = next((v, attr.get('label')) for u, v, attr in edges if v != tracker.current_state)
+        # Get active policy from DFA state
         policy = tracker.get_active_policy()
+        print(policy, current_state, tracker.current_state)
         
-        if steps % 10 == 0:
-            print(f"Step {steps}: Current grid state {current_state} DFA State={tracker.current_state}, Target DFA State={adv_edge[0]}, Goal={adv_edge[1]}")
-            
         # Choose greedy action
         q_values = {a: policy(current_state, a) for a in Action}
         best_action = max(q_values, key=q_values.get)
-        print(best_action)
+        
         # Capture frame
         frames.append(capture_frame(renderer, current_state, trace_env.history))
         
@@ -139,8 +99,9 @@ def test_sequential_ltlf_policy():
         # Step DFA
         old_dfa_state = tracker.current_state
         new_dfa_state = tracker.step_dfa(current_state)
+        
         if old_dfa_state != new_dfa_state:
-            print(f"DFA Transition: {old_dfa_state} -> {new_dfa_state} at step {steps} (Condition Met!)")
+            print(f"DFA Transition: {old_dfa_state} -> {new_dfa_state} at step {steps}")
             
         if tracker.is_accepted():
             print(f"LTLf Formula Accepted at step {steps}!")
@@ -149,11 +110,8 @@ def test_sequential_ltlf_policy():
     # Final frame
     frames.append(capture_frame(renderer, current_state, trace_env.history))
     
-    # 5. Save GIF
-    static_dir = "static"
-    os.makedirs(static_dir, exist_ok=True)
-    output_path = os.path.join(static_dir, "sequential_task_new.gif")
-    
+    # 7. Save Results
+    output_path = os.path.join(static_dir, "sequential_task_refactored.gif")
     frames[0].save(
         output_path,
         save_all=True,
@@ -161,9 +119,9 @@ def test_sequential_ltlf_policy():
         duration=200,
         loop=0
     )
-    print(f"Sequential Task GIF saved to {output_path}")
+    print(f"Simulation GIF saved to {output_path}")
     
-    assert tracker.is_accepted(), "Agent failed to complete the sequential task!"
+    assert tracker.is_accepted(), "Agent failed to complete the task!"
 
 def capture_frame(renderer, state, history):
     buf = io.BytesIO()

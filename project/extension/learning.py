@@ -64,12 +64,14 @@ def train_goal_oriented(
 
 if __name__ == "__main__":
     # Quick sanity check if run directly
-    from extension.goal import GoalRegion
+    from extension.goal import TerminalRegion
     from extension.proposition import Proposition
     
     test_env = GridWorldEnv(0, 5, 0, 5)
-    goals = [GoalRegion(Proposition.REACH_ZONE_A, lambda s: s.x == 5 and s.y == 5)]
-    test_agent = WVFMultiGoalAgent(goals)
+    goal_pred = lambda s: s.x == 5 and s.y == 5
+    terminals = [TerminalRegion(Proposition.REACH_ZONE_A, goal_pred)]
+    tasks = {Proposition.REACH_ZONE_A: goal_pred}
+    test_agent = WVFMultiGoalAgent(terminals, tasks)
     
     print("Starting sample training...")
     train_goal_oriented(test_env, test_agent, episodes=100)

@@ -77,7 +77,6 @@ def extract_formal_skill(self_loop_str: str, target_edge_str: str) -> Dict[str, 
 
     # 3. Convert the self-loop to Conjunctive Normal Form (AND of ORs)
     S_cnf = sympy.to_cnf(S_expr)
-    print(S_cnf, "HERE")
 
     # 4. Extract individual conjuncts (clauses)
     # If it's an 'And', .args returns the clauses. Otherwise, the whole expression is one clause.
@@ -90,7 +89,6 @@ def extract_formal_skill(self_loop_str: str, target_edge_str: str) -> Dict[str, 
 
     # 5. Test each clause against the target edge
     for clause in clauses:
-        print(clause, type(clause), T_expr, type(T_expr))
         # If the clause and the target edge do NOT contradict, it is an invariant.
         # satisfiable() returns a dictionary of truth values if true, or False if unsatisfiable.
         if sympy.satisfiable(clause & T_expr) is not False:

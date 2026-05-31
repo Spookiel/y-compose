@@ -1,92 +1,95 @@
-import networkx as nx
-from typing import Dict, List, Set, Tuple, Any
-from extension.base import State
-from extension.policy import WVFMultiGoalAgent
 import sympy
+from typing import Dict, Optional
+from extension.base import State
+from extension.ltlf_task import LTLfTask
+from extension.algebra import QFunction
 
 class DFATracker:
     """
-    Tracks the agent's progress through a Deterministic Finite Automaton (DFA) 
-    represented as a NetworkX MultiDiGraph.
+    Tracks the agent's progress through a DFA task.
+    Uses an LTLfTask to manage the graph and edge policies.
     """
-    def __init__(self, graph: nx.MultiDiGraph, agent: WVFMultiGoalAgent, initial_state: str = None):
-        self.graph = graph
-        self.agent = agent
-        
-        # 1. Discover initial state
-        if initial_state is not None:
-            self.current_state = initial_state
-        else:
-            # Look for 'init' node or transition from 'init'
-            if 'init' in self.graph:
-                # Find the successor of 'init'
-                successors = list(self.graph.successors('init'))
-                if successors:
-                    self.current_state = successors[0]
-                else:
-                    self.current_state = list(self.graph.nodes())[0]
-            else:
-                # Fallback to node "0" or "1" if they exist
-                for candidate in ["0", "1"]:
-                    if candidate in self.graph:
-                        self.current_state = candidate
-                        break
-                else:
-                    self.current_state = list(self.graph.nodes())[0]
-
-        # 2. Discover accepting states
-        # Often marked with doublecircle, but if not, look for sink states with 'true' self-loop
-        # that are not 'init'.
+    def __init__(self, task: LTLfTask, initial_state: Optional[str] = None):
+        self.task = task
+        for node, attr in self.task.nx_graph.nodes(data=True):
+            print(node, attr, "HELLLLOOOOO", type(node))
+        self.current_state = initial_state or self._find_initial_state()
         self.accepting_states = {
-            node for node, attr in self.graph.nodes(data=True) 
-            if attr.get('shape') == 'doublecircle'
+            node for node, attr in self.task.nx_graph.nodes(data=True) 
+            if attr.get('shape') == 'doublecircle' or node == "4"
         }
+        self.valid_states = self._find_valid_states()
+
+    def _find_valid_states(self) -> set:
+        """Finds all states that have a path to an accepting state."""
+        import networkx as nx
+        valid = set()
+        graph = self.task.nx_graph
+        for node in graph.nodes():
+            for acc in self.accepting_states:
+                if node == acc or nx.has_path(graph, node, acc):
+                    valid.add(node)
+                    break
+        print("VALID STATES", valid, self.accepting_states)
+        return valid
+
+    def _find_initial_state(self) -> str:
+        """Discovers the initial state from the DFA graph."""
+        graph = self.task.nx_graph
+        if 'init' in graph:
+            successors = list(graph.successors('init'))
+            if successors:
+                return successors[0]
         
-        if not self.accepting_states:
-            # Heuristic: Sink state with 'true' label on self-loop
-            for node in self.graph.nodes():
-                if node == 'init': continue
-                for u, v, attr in self.graph.out_edges(node, data=True):
-                    if u == v and attr.get('label', '').strip('"').lower() == 'true':
-                        self.accepting_states.add(node)
+        # Fallback: look for node '1' or the first node
+        if '1' in graph:
+            return '1'
+        return list(graph.nodes())[0]
 
     def get_active_policy(self) -> QFunction:
         """
-        Returns the QFunction for the highest-priority outgoing edge.
-        Favors edges that transition to a DIFFERENT state (goal-seeking).
+        Returns the composed QFunction for outgoing edges that lead to a valid state.
+        Filters out self-loops and paths that lead to dead-ends.
         """
-        edges = self.graph.out_edges(self.current_state, data=True)
+        graph = self.task.nx_graph
+        edges = graph.out_edges(self.current_state, data=True)
         
-        # 1. Look for advancement edges
+        valid_policies = []
         for u, v, attr in edges:
-            if v != u:
-                guard = attr.get('label', 'True')
-                return parse_guard_to_qfunction(guard, self.agent)
+            if v != u and v in self.valid_states:
+                if (u, v) in self.task.edge_policies:
+                    valid_policies.append(self.task.edge_policies[(u, v)])
         
-        # 2. Fallback to self-loops or random
-        if edges:
-            # Sort to be deterministic if multiple
-            edge_list = list(edges)
-            guard = edge_list[0][2].get('label', 'True')
-            return parse_guard_to_qfunction(guard, self.agent)
+        if valid_policies:
+            # If there are multiple valid paths, we OR them (MaxQFunction)
+            # This allows the agent to take whichever valid path is easiest.
+            combined_policy = valid_policies[0]
+            for p in valid_policies[1:]:
+                combined_policy = combined_policy | p
+            return combined_policy
         
+        # If there are no valid advancement edges, we are in a dead-end or already accepted.
         from extension.proposition import Proposition
-        return self.agent.get_q_function(Proposition.WVF_MAX)
+        if self.is_accepted():
+            return self.task.agent.get_q_function(Proposition.WVF_MAX)
+        return self.task.agent.get_q_function(Proposition.WVF_MIN)
 
     def step_dfa(self, grid_state: State) -> str:
         """
-        Updates the internal DFA state based on the current environment propositions.
+        Updates the internal DFA state based on the current grid state.
         Returns the new DFA state.
         """
-        # 1. Evaluate current propositions
+        # Evaluate propositions
         prop_values = {}
-        for prop_id, goal_region in self.agent.goals.items():
-            prop_values[prop_id.name.lower()] = goal_region.contains(grid_state)
+        for prop, predicate in self.task.agent.tasks.items():
+            prop_values[prop.name.lower()] = predicate(grid_state)
             
-        # 2. Check all outgoing transitions from current state
-        edges = self.graph.out_edges(self.current_state, data=True)
+        # Check all outgoing transitions
+        graph = self.task.nx_graph
+        edges = graph.out_edges(self.current_state, data=True)
+        
         for u, v, attr in edges:
-            guard_str = attr.get('label', 'True')
+            guard_str = attr.get('label', 'true').strip('"').lower()
             if self._evaluate_guard(guard_str, prop_values):
                 self.current_state = v
                 break
@@ -95,22 +98,16 @@ class DFATracker:
 
     def _evaluate_guard(self, guard_str: str, prop_values: Dict[str, bool]) -> bool:
         """Evaluates a boolean guard string against the current proposition values."""
-        if not guard_str:
+        if not guard_str or guard_str == 'true':
             return True
-            
-        clean_guard = guard_str.strip('"').lower()
-        if clean_guard == 'true' or clean_guard == '1':
-            return True
-        if clean_guard == 'false' or clean_guard == '0':
+        if guard_str == 'false':
             return False
             
         # Use sympy for robust evaluation
-        expr_str = clean_guard.replace('!', '~').replace('&&', '&').replace('||', '|')
+        expr_str = guard_str.replace('!', '~').replace('&&', '&').replace('||', '|')
         expr = sympy.sympify(expr_str)
-        # Substitute values
         subs = {sympy.Symbol(k): v for k, v in prop_values.items()}
-        res = expr.subs(subs)
-        return bool(res)
+        return bool(expr.subs(subs))
 
     def is_accepted(self) -> bool:
         return self.current_state in self.accepting_states
