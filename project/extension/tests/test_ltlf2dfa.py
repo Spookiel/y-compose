@@ -70,7 +70,8 @@ def test_sequential_ltlf_policy():
     ltlf_task.render_edge_policies(renderer, save_dir=static_dir)
     
     # 6. Simulation Loop
-    tracker = DFATracker(ltlf_task)
+    # Have to manually pass accepting states due to bug in pydot conversion
+    tracker = DFATracker(ltlf_task, list("4"))
     trace_env = TraceableEnv(env)
     current_state = State(x=0, y=0) 
     frames = []

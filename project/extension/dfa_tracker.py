@@ -1,5 +1,5 @@
 import sympy
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from extension.base import State
 from extension.ltlf_task import LTLfTask
 from extension.algebra import QFunction
@@ -9,16 +9,15 @@ class DFATracker:
     Tracks the agent's progress through a DFA task.
     Uses an LTLfTask to manage the graph and edge policies.
     """
-    def __init__(self, task: LTLfTask, initial_state: Optional[str] = None):
+    def __init__(self, task: LTLfTask, accepting_states: List[str], initial_state: Optional[str] = None):
         self.task = task
-        for node, attr in self.task.nx_graph.nodes(data=True):
-            print(node, attr, "HELLLLOOOOO", type(node))
+        if not accepting_states:
+            raise ValueError("DFA should have at least one accepting state")
         self.current_state = initial_state or self._find_initial_state()
-        self.accepting_states = {
-            node for node, attr in self.task.nx_graph.nodes(data=True) 
-            if attr.get('shape') == 'doublecircle' or node == "4"
-        }
+        self.accepting_states = accepting_states
         self.valid_states = self._find_valid_states()
+        if not self.valid_states:
+            raise ValueError("No valid states!")
 
     def _find_valid_states(self) -> set:
         """Finds all states that have a path to an accepting state."""
@@ -30,7 +29,6 @@ class DFATracker:
                 if node == acc or nx.has_path(graph, node, acc):
                     valid.add(node)
                     break
-        print("VALID STATES", valid, self.accepting_states)
         return valid
 
     def _find_initial_state(self) -> str:
