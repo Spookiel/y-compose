@@ -1,0 +1,282 @@
+
+DFA for formula with free variables: GOAL_1 GOAL_2 GOAL_3 GOAL_4 GOAL_5 GOAL_6 
+Initial state: 0
+Accepting states: 17 
+Rejecting states: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 
+
+Automaton has 18 states and 81 BDD-nodes
+Transitions:
+State 0: XXXXXX -> state 1
+State 1: 000000 -> state 1
+State 1: 000001 -> state 2
+State 1: 00001X -> state 2
+State 1: 000100 -> state 3
+State 1: 000101 -> state 2
+State 1: 00011X -> state 2
+State 1: 001000 -> state 4
+State 1: 001001 -> state 2
+State 1: 00101X -> state 2
+State 1: 001100 -> state 5
+State 1: 001101 -> state 2
+State 1: 00111X -> state 2
+State 1: 010000 -> state 6
+State 1: 010001 -> state 2
+State 1: 01001X -> state 2
+State 1: 010100 -> state 7
+State 1: 010101 -> state 2
+State 1: 01011X -> state 2
+State 1: 011000 -> state 8
+State 1: 011001 -> state 2
+State 1: 01101X -> state 2
+State 1: 011100 -> state 9
+State 1: 011101 -> state 2
+State 1: 01111X -> state 2
+State 1: 100000 -> state 10
+State 1: 100001 -> state 2
+State 1: 10001X -> state 2
+State 1: 100100 -> state 11
+State 1: 100101 -> state 2
+State 1: 10011X -> state 2
+State 1: 101000 -> state 12
+State 1: 101001 -> state 2
+State 1: 10101X -> state 2
+State 1: 101100 -> state 13
+State 1: 101101 -> state 2
+State 1: 10111X -> state 2
+State 1: 110000 -> state 14
+State 1: 110001 -> state 2
+State 1: 11001X -> state 2
+State 1: 110100 -> state 15
+State 1: 110101 -> state 2
+State 1: 11011X -> state 2
+State 1: 111000 -> state 16
+State 1: 111001 -> state 2
+State 1: 11101X -> state 2
+State 1: 111100 -> state 17
+State 1: 111101 -> state 2
+State 1: 11111X -> state 2
+State 2: XXXXXX -> state 2
+State 3: 000X00 -> state 3
+State 3: 000X01 -> state 2
+State 3: 000X1X -> state 2
+State 3: 001X00 -> state 5
+State 3: 001X01 -> state 2
+State 3: 001X1X -> state 2
+State 3: 010X00 -> state 7
+State 3: 010X01 -> state 2
+State 3: 010X1X -> state 2
+State 3: 011X00 -> state 9
+State 3: 011X01 -> state 2
+State 3: 011X1X -> state 2
+State 3: 100X00 -> state 11
+State 3: 100X01 -> state 2
+State 3: 100X1X -> state 2
+State 3: 101X00 -> state 13
+State 3: 101X01 -> state 2
+State 3: 101X1X -> state 2
+State 3: 110X00 -> state 15
+State 3: 110X01 -> state 2
+State 3: 110X1X -> state 2
+State 3: 111X00 -> state 17
+State 3: 111X01 -> state 2
+State 3: 111X1X -> state 2
+State 4: 00X000 -> state 4
+State 4: 00X001 -> state 2
+State 4: 00X01X -> state 2
+State 4: 00X100 -> state 5
+State 4: 00X101 -> state 2
+State 4: 00X11X -> state 2
+State 4: 01X000 -> state 8
+State 4: 01X001 -> state 2
+State 4: 01X01X -> state 2
+State 4: 01X100 -> state 9
+State 4: 01X101 -> state 2
+State 4: 01X11X -> state 2
+State 4: 10X000 -> state 12
+State 4: 10X001 -> state 2
+State 4: 10X01X -> state 2
+State 4: 10X100 -> state 13
+State 4: 10X101 -> state 2
+State 4: 10X11X -> state 2
+State 4: 11X000 -> state 16
+State 4: 11X001 -> state 2
+State 4: 11X01X -> state 2
+State 4: 11X100 -> state 17
+State 4: 11X101 -> state 2
+State 4: 11X11X -> state 2
+State 5: 00XX00 -> state 5
+State 5: 00XX01 -> state 2
+State 5: 00XX1X -> state 2
+State 5: 01XX00 -> state 9
+State 5: 01XX01 -> state 2
+State 5: 01XX1X -> state 2
+State 5: 10XX00 -> state 13
+State 5: 10XX01 -> state 2
+State 5: 10XX1X -> state 2
+State 5: 11XX00 -> state 17
+State 5: 11XX01 -> state 2
+State 5: 11XX1X -> state 2
+State 6: 0X0000 -> state 6
+State 6: 0X0001 -> state 2
+State 6: 0X001X -> state 2
+State 6: 0X0100 -> state 7
+State 6: 0X0101 -> state 2
+State 6: 0X011X -> state 2
+State 6: 0X1000 -> state 8
+State 6: 0X1001 -> state 2
+State 6: 0X101X -> state 2
+State 6: 0X1100 -> state 9
+State 6: 0X1101 -> state 2
+State 6: 0X111X -> state 2
+State 6: 1X0000 -> state 14
+State 6: 1X0001 -> state 2
+State 6: 1X001X -> state 2
+State 6: 1X0100 -> state 15
+State 6: 1X0101 -> state 2
+State 6: 1X011X -> state 2
+State 6: 1X1000 -> state 16
+State 6: 1X1001 -> state 2
+State 6: 1X101X -> state 2
+State 6: 1X1100 -> state 17
+State 6: 1X1101 -> state 2
+State 6: 1X111X -> state 2
+State 7: 0X0X00 -> state 7
+State 7: 0X0X01 -> state 2
+State 7: 0X0X1X -> state 2
+State 7: 0X1X00 -> state 9
+State 7: 0X1X01 -> state 2
+State 7: 0X1X1X -> state 2
+State 7: 1X0X00 -> state 15
+State 7: 1X0X01 -> state 2
+State 7: 1X0X1X -> state 2
+State 7: 1X1X00 -> state 17
+State 7: 1X1X01 -> state 2
+State 7: 1X1X1X -> state 2
+State 8: 0XX000 -> state 8
+State 8: 0XX001 -> state 2
+State 8: 0XX01X -> state 2
+State 8: 0XX100 -> state 9
+State 8: 0XX101 -> state 2
+State 8: 0XX11X -> state 2
+State 8: 1XX000 -> state 16
+State 8: 1XX001 -> state 2
+State 8: 1XX01X -> state 2
+State 8: 1XX100 -> state 17
+State 8: 1XX101 -> state 2
+State 8: 1XX11X -> state 2
+State 9: 0XXX00 -> state 9
+State 9: 0XXX01 -> state 2
+State 9: 0XXX1X -> state 2
+State 9: 1XXX00 -> state 17
+State 9: 1XXX01 -> state 2
+State 9: 1XXX1X -> state 2
+State 10: X00000 -> state 10
+State 10: X00001 -> state 2
+State 10: X0001X -> state 2
+State 10: X00100 -> state 11
+State 10: X00101 -> state 2
+State 10: X0011X -> state 2
+State 10: X01000 -> state 12
+State 10: X01001 -> state 2
+State 10: X0101X -> state 2
+State 10: X01100 -> state 13
+State 10: X01101 -> state 2
+State 10: X0111X -> state 2
+State 10: X10000 -> state 14
+State 10: X10001 -> state 2
+State 10: X1001X -> state 2
+State 10: X10100 -> state 15
+State 10: X10101 -> state 2
+State 10: X1011X -> state 2
+State 10: X11000 -> state 16
+State 10: X11001 -> state 2
+State 10: X1101X -> state 2
+State 10: X11100 -> state 17
+State 10: X11101 -> state 2
+State 10: X1111X -> state 2
+State 11: X00X00 -> state 11
+State 11: X00X01 -> state 2
+State 11: X00X1X -> state 2
+State 11: X01X00 -> state 13
+State 11: X01X01 -> state 2
+State 11: X01X1X -> state 2
+State 11: X10X00 -> state 15
+State 11: X10X01 -> state 2
+State 11: X10X1X -> state 2
+State 11: X11X00 -> state 17
+State 11: X11X01 -> state 2
+State 11: X11X1X -> state 2
+State 12: X0X000 -> state 12
+State 12: X0X001 -> state 2
+State 12: X0X01X -> state 2
+State 12: X0X100 -> state 13
+State 12: X0X101 -> state 2
+State 12: X0X11X -> state 2
+State 12: X1X000 -> state 16
+State 12: X1X001 -> state 2
+State 12: X1X01X -> state 2
+State 12: X1X100 -> state 17
+State 12: X1X101 -> state 2
+State 12: X1X11X -> state 2
+State 13: X0XX00 -> state 13
+State 13: X0XX01 -> state 2
+State 13: X0XX1X -> state 2
+State 13: X1XX00 -> state 17
+State 13: X1XX01 -> state 2
+State 13: X1XX1X -> state 2
+State 14: XX0000 -> state 14
+State 14: XX0001 -> state 2
+State 14: XX001X -> state 2
+State 14: XX0100 -> state 15
+State 14: XX0101 -> state 2
+State 14: XX011X -> state 2
+State 14: XX1000 -> state 16
+State 14: XX1001 -> state 2
+State 14: XX101X -> state 2
+State 14: XX1100 -> state 17
+State 14: XX1101 -> state 2
+State 14: XX111X -> state 2
+State 15: XX0X00 -> state 15
+State 15: XX0X01 -> state 2
+State 15: XX0X1X -> state 2
+State 15: XX1X00 -> state 17
+State 15: XX1X01 -> state 2
+State 15: XX1X1X -> state 2
+State 16: XXX000 -> state 16
+State 16: XXX001 -> state 2
+State 16: XXX01X -> state 2
+State 16: XXX100 -> state 17
+State 16: XXX101 -> state 2
+State 16: XXX11X -> state 2
+State 17: XXXX00 -> state 17
+State 17: XXXX01 -> state 2
+State 17: XXXX1X -> state 2
+A counter-example of least length (0) is:
+GOAL_1          X 
+GOAL_2          X 
+GOAL_3          X 
+GOAL_4          X 
+GOAL_5          X 
+GOAL_6          X 
+
+GOAL_1 = {}
+GOAL_2 = {}
+GOAL_3 = {}
+GOAL_4 = {}
+GOAL_5 = {}
+GOAL_6 = {}
+
+A satisfying example of least length (1) is:
+GOAL_1          X 1
+GOAL_2          X 1
+GOAL_3          X 1
+GOAL_4          X 1
+GOAL_5          X 0
+GOAL_6          X 0
+
+GOAL_1 = {0}
+GOAL_2 = {0}
+GOAL_3 = {0}
+GOAL_4 = {0}
+GOAL_5 = {}
+GOAL_6 = {}
