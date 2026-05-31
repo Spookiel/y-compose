@@ -59,7 +59,7 @@ def test_sequential_ltlf_policy():
         agent.save(checkpoint_path)
 
     # 4. LTLf Task Composition
-    formula_str = "(avoid_zone_b && avoid_zone_c) U (reach_zone_a && X F reach_zone_b)"
+    formula_str = "(F reach_zone_a && X F reach_zone_b) && G avoid_zone_c"
     print(f"\nComposing LTLf Task: {formula_str}")
     ltlf_task = LTLfTask(formula_str, agent)
     ltlf_task.print_dfa_info()
@@ -71,7 +71,7 @@ def test_sequential_ltlf_policy():
     
     # 6. Simulation Loop
     # Have to manually pass accepting states due to bug in pydot conversion
-    tracker = DFATracker(ltlf_task, list("4"))
+    tracker = DFATracker(ltlf_task, list("6"))
     trace_env = TraceableEnv(env)
     current_state = State(x=0, y=0) 
     frames = []
