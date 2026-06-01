@@ -1,76 +1,78 @@
 import sympy
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple, Callable, Any
 from extension.base import State
-from extension.ltlf_task import LTLfTask
-from extension.algebra import QFunction
+import networkx as nx
+from extension.proposition import Proposition
 
 class DFATracker:
     """
     Tracks the agent's progress through a DFA task.
-    Uses an LTLfTask to manage the graph and edge policies.
     """
-    def __init__(self, task: LTLfTask, accepting_states: List[str], initial_state: Optional[str] = None):
-        self.task = task
-        if not accepting_states:
-            raise ValueError("DFA should have at least one accepting state")
+    def __init__(
+        self, 
+        graph: nx.MultiDiGraph, 
+        tasks: Dict[Proposition, Callable[[State], bool]],
+        initial_state: Optional[str] = None
+    ):
+        self.graph = graph
+        self.tasks = tasks
+        
+        self.accepting_states = {
+            node for node, attr in self.graph.nodes(data=True) 
+            if attr.get('shape') == 'doublecircle'
+        }
+        if not self.accepting_states:
+            # Fallback if doublecircle isn't explicitly set but there is an accepting state
+            # This is usually parsed from MONA, assuming node 4 or something, but let's just 
+            # allow it to be empty or handle it gracefully.
+            pass
+
         self.current_state = initial_state or self._find_initial_state()
-        self.accepting_states = accepting_states
         self.valid_states = self._find_valid_states()
-        if not self.valid_states:
-            raise ValueError("No valid states!")
 
     def _find_valid_states(self) -> set:
         """Finds all states that have a path to an accepting state."""
-        import networkx as nx
         valid = set()
-        graph = self.task.nx_graph
-        for node in graph.nodes():
+        for node in self.graph.nodes():
             for acc in self.accepting_states:
-                if node == acc or nx.has_path(graph, node, acc):
+                if node == acc or nx.has_path(self.graph, node, acc):
                     valid.add(node)
                     break
         return valid
 
     def _find_initial_state(self) -> str:
         """Discovers the initial state from the DFA graph."""
-        graph = self.task.nx_graph
-        if 'init' in graph:
-            successors = list(graph.successors('init'))
+        if 'init' in self.graph:
+            successors = list(self.graph.successors('init'))
             if successors:
                 return successors[0]
         
         # Fallback: look for node '1' or the first node
-        if '1' in graph:
+        if '1' in self.graph:
             return '1'
-        return list(graph.nodes())[0]
+        return list(self.graph.nodes())[0]
 
-    def get_active_policy(self) -> QFunction:
+    def get_active_edge(self) -> Optional[Tuple[str, str]]:
         """
-        Returns the composed QFunction for outgoing edges that lead to a valid state.
+        Returns the (u, v) tuple for the highest-priority outgoing advancement edge 
+        from the current state that leads to a valid state.
         Filters out self-loops and paths that lead to dead-ends.
         """
-        graph = self.task.nx_graph
-        edges = graph.out_edges(self.current_state, data=True)
+        edges = self.graph.out_edges(self.current_state, data=True)
         
-        valid_policies = []
+        valid_edges = []
         for u, v, attr in edges:
             if v != u and v in self.valid_states:
-                if (u, v) in self.task.edge_policies:
-                    valid_policies.append(self.task.edge_policies[(u, v)])
+                valid_edges.append((u, v))
         
-        if valid_policies:
-            # If there are multiple valid paths, we OR them (MaxQFunction)
-            # This allows the agent to take whichever valid path is easiest.
-            combined_policy = valid_policies[0]
-            for p in valid_policies[1:]:
-                combined_policy = combined_policy | p
-            return combined_policy
+        if valid_edges:
+            # For now, just return the first valid advancement edge.
+            # TaskExecutor could combine multiple policies if we return a list, 
+            # but returning one edge or combining them can be handled at the executor level.
+            # Let's return a list of valid edges so the executor can OR them.
+            return valid_edges
         
-        # If there are no valid advancement edges, we are in a dead-end or already accepted.
-        from extension.proposition import Proposition
-        if self.is_accepted():
-            return self.task.agent.get_q_function(Proposition.WVF_MAX)
-        return self.task.agent.get_q_function(Proposition.WVF_MIN)
+        return None
 
     def step_dfa(self, grid_state: State) -> str:
         """
@@ -79,12 +81,11 @@ class DFATracker:
         """
         # Evaluate propositions
         prop_values = {}
-        for prop, predicate in self.task.agent.tasks.items():
+        for prop, predicate in self.tasks.items():
             prop_values[prop.name.lower()] = predicate(grid_state)
             
         # Check all outgoing transitions
-        graph = self.task.nx_graph
-        edges = graph.out_edges(self.current_state, data=True)
+        edges = self.graph.out_edges(self.current_state, data=True)
         
         for u, v, attr in edges:
             guard_str = attr.get('label', 'true').strip('"').lower()
@@ -109,3 +110,4 @@ class DFATracker:
 
     def is_accepted(self) -> bool:
         return self.current_state in self.accepting_states
+

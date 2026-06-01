@@ -6,6 +6,7 @@ from extension.proposition import Proposition
 from extension.base import RMAX, RMIN, State, Action
 from extension.env import StepResult
 from extension.algebra import DiscreteQFunction
+from extension.reward import WVFRewardFunction
 import random
 import torch
 import os
@@ -22,6 +23,8 @@ class WVFMultiGoalAgent(GoalOrientedPolicy):
 
         self.terminal_regions = terminal_regions
         self.tasks = tasks
+        
+        self.reward_fn = WVFRewardFunction(tasks)
 
         self.alpha = alpha
         self.gamma = gamma
@@ -124,7 +127,7 @@ class WVFMultiGoalAgent(GoalOrientedPolicy):
         """
         for prop in self.all_propositions:
             # 1. Determine the task-specific algebraic reward (r_hat)
-            r_hat = self._compute_wvf_reward(result, prop)
+            r_hat = self.reward_fn(result, prop)
             
             # 2. Calculate the maximum Q-value for the next state
             if result.is_terminal:
@@ -138,29 +141,4 @@ class WVFMultiGoalAgent(GoalOrientedPolicy):
             td_error = td_target - current_q
             
             self.q_tables[prop][(state, action)] += self.alpha * td_error
-
-    def _compute_wvf_reward(self, result: StepResult, prop: Proposition) -> float:
-        """
-        Enforces the strictly sparse Boolean reward bounds required by the WVF algebra.
-        """
-        # If the environment hasn't reached a terminal state, everyone gets the base step penalty.
-        if not result.is_terminal:
-            return result.base_reward
-
-        # --- TERMINAL STATE LOGIC ---
-        
-        # WVF_MAX: An omnipotent task where ANY terminal state is considered a success.
-        if prop == Proposition.WVF_MAX:
-            return RMAX
-            
-        # WVF_MIN: A pessimistic task where ANY terminal state is considered a failure.
-        if prop == Proposition.WVF_MIN:
-            return RMIN
-            
-        # Specific Goal Logic: Success if the terminal state is inside the region, failure otherwise.
-        success_predicate = self.tasks[prop]
-        if success_predicate(result.next_state):
-            return RMAX
-        else:
-            return RMIN
   

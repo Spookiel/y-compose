@@ -18,7 +18,8 @@ class GridWorldEnv(Env):
 
     def step(self, state: State, action: Action) -> StepResult:
         new_state:State = self._apply_physics(state, action)
-        return StepResult(next_state=new_state, base_reward=GridWorldEnv.STEP_REWARD, is_terminal=False)
+        outside = not (0 <= new_state.x < self.x_max and 0 <= new_state.y < self.y_max)
+        return StepResult(next_state=new_state, base_reward=GridWorldEnv.STEP_REWARD, is_terminal=outside)
 
     def _apply_physics(self, state: State, action: Action) -> State:
         new_x, new_y = state.x, state.y
@@ -31,10 +32,6 @@ class GridWorldEnv(Env):
             new_x -= 1
         elif action == Action.RIGHT:
             new_x += 1
-            
-        # Clamp to bounds
-        new_x = max(self.x_min, min(new_x, self.x_max))
-        new_y = max(self.y_min, min(new_y, self.y_max))
         
         return State(x=new_x, y=new_y)
 

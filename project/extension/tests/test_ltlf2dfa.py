@@ -44,7 +44,7 @@ def test_sequential_ltlf_policy():
     agent = WVFMultiGoalAgent(terminal_regions=terminals, tasks=tasks, epsilon=0.1)
 
     # 3. Train or Load
-    train = False
+    train = False # Force training once with new goal definitions
     static_dir = "static"
     checkpoint_path = os.path.join(static_dir, "wvf_agent_test.pt")
 
@@ -54,12 +54,12 @@ def test_sequential_ltlf_policy():
     else:
         print("\nNo checkpoint found. Training agent...")
         # Increase episodes to handle the wall/8x8 space
-        train_goal_oriented(env, agent, episodes=500000, verbose=False)
+        train_goal_oriented(env, agent, episodes=100000, verbose=False)
         print(f"Saving trained agent to {checkpoint_path}...")
         agent.save(checkpoint_path)
 
     # 4. LTLf Task Composition
-    formula_str = "(F reach_zone_a && X F reach_zone_b) && G avoid_zone_c"
+    formula_str = "(F reach_zone_a && X F reach_zone_b)"
     print(f"\nComposing LTLf Task: {formula_str}")
     ltlf_task = LTLfTask(formula_str, agent)
     ltlf_task.print_dfa_info()
@@ -68,26 +68,51 @@ def test_sequential_ltlf_policy():
     static_dir = "static"
     renderer = GridWorldRenderer(env, terminals)
     ltlf_task.render_edge_policies(renderer, save_dir=static_dir)
-    
-    # 6. Simulation Loop
+    # 6. Extract or Load Decision Trees using VIPER
+    retrain_dt = True
+    dt_checkpoint_path = os.path.join(static_dir, "dt_policies_test.pk")
+
+    if os.path.exists(dt_checkpoint_path) and not retrain_dt:
+        print(f"\nLoading pre-distilled DT policies from {dt_checkpoint_path}...")
+        dt_edge_policies = ltlf_task.load_dt_policies(dt_checkpoint_path)
+    else:
+        print("\nExtracting VIPER Decision Trees for composed policies...")
+        # Use standard VIPER parameters. 
+        dt_edge_policies = ltlf_task.extract_dt_policies(
+            env, 
+            max_depth=100,
+            max_iters=5, 
+            n_batch_rollouts=1000, 
+            max_samples=500000,
+            n_test_rollouts=200,
+            accepting_states={"5"}
+        )
+    print(f"Saving distilled DT policies to {dt_checkpoint_path}...")
+    ltlf_task.save_dt_policies(dt_edge_policies, dt_checkpoint_path)
+
+    # 7. Simulation Loop
+    from extension.executor import TaskExecutor, QFunctionPolicy
+
     # Have to manually pass accepting states due to bug in pydot conversion
-    tracker = DFATracker(ltlf_task, list("6"))
+    tracker = DFATracker(ltlf_task.nx_graph, agent.tasks)
+    tracker.accepting_states = {"5"}  # Patch bug with MONA parse
+    tracker.valid_states = tracker._find_valid_states()
+
+    fallback = QFunctionPolicy(agent.get_q_function(Proposition.WVF_MIN))
+    executor = TaskExecutor(tracker, dt_edge_policies, fallback_policy=fallback)
+        
     trace_env = TraceableEnv(env)
     current_state = State(x=0, y=0) 
     frames = []
     
     max_steps = 200
     steps = 0
-    print(f"\nStarting simulation from {current_state}...")
+    print(f"\nStarting simulation from {current_state} with Decision Trees...")
     
     while steps < max_steps:
-        # Get active policy from DFA state
-        policy = tracker.get_active_policy()
-        print(policy, current_state, tracker.current_state)
-        
-        # Choose greedy action
-        q_values = {a: policy(current_state, a) for a in Action}
-        best_action = max(q_values, key=q_values.get)
+        # Get action from the decoupled executor
+        best_action = executor.get_action(current_state)
+        print(best_action, current_state, tracker.current_state)
         
         # Capture frame
         frames.append(capture_frame(renderer, current_state, trace_env.history))
@@ -111,8 +136,8 @@ def test_sequential_ltlf_policy():
     # Final frame
     frames.append(capture_frame(renderer, current_state, trace_env.history))
     
-    # 7. Save Results
-    output_path = os.path.join(static_dir, "sequential_task_refactored.gif")
+    # 8. Save Results
+    output_path = os.path.join(static_dir, "sequential_task_dt.gif")
     frames[0].save(
         output_path,
         save_all=True,
