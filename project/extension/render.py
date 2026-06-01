@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Union
 from extension.base import State, Action
 from extension.goal import TerminalRegion
 from extension.env import GridWorldEnv
@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from extension.policy import WVFMultiGoalAgent
     from extension.proposition import Proposition
     from extension.algebra import QFunction
+    from extension.executor import EdgePolicy
 
 class GridWorldRenderer:
     def __init__(self, env: GridWorldEnv, terminal_regions: List[TerminalRegion]):
@@ -64,8 +65,11 @@ class GridWorldRenderer:
                             )
                         ax.add_patch(goal_rect)
 
-    def _draw_policy_arrows(self, ax, q_function: 'QFunction'):
+    def _draw_policy_arrows(self, ax, policy: Union['QFunction', 'EdgePolicy']):
         """Draws arrows indicating the greedy action at each cell."""
+        from extension.executor import EdgePolicy
+        is_edge = isinstance(policy, EdgePolicy)
+        
         action_map = {
             Action.UP: (0, 0.4),
             Action.DOWN: (0, -0.4),
@@ -76,13 +80,18 @@ class GridWorldRenderer:
         for x in range(self.env.x_min, self.env.x_max + 1):
             for y in range(self.env.y_min, self.env.y_max + 1):
                 state = State(x=x, y=y)
-                # Find best action
-                q_values = {a: q_function(state, a) for a in Action}
-                # Only draw if there's meaningful learning (some values != 0)
-                if all(q == 0 for q in q_values.values()):
-                    continue
-                    
-                best_action = max(q_values, key=q_values.get)
+                
+                if is_edge:
+                    best_action = policy.get_action(state)
+                else:
+                    # Find best action
+                    q_values = {a: policy(state, a) for a in Action}
+                    # Only draw if there's meaningful learning (some values != 0)
+                    if all(q == 0 for q in q_values.values()):
+                        continue
+                        
+                    best_action = max(q_values, key=q_values.get)
+                
                 dx, dy = action_map[best_action]
                 
                 # Draw arrow centered in cell

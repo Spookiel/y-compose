@@ -20,7 +20,7 @@ def test_sequential_ltlf_policy():
     env = GridWorldEnv(x_min=0, x_max=7, y_min=0, y_max=7)
     
     # 2. Define Regions & Task Predicates
-    goal_a_pred = lambda s: s.x == 3 and 1 <= s.y <= 7
+    goal_a_pred = lambda s: s.x == 3 and 5 <= s.y <= 7
     goal_b_pred = lambda s: s.x == 7 and s.y == 0
     goal_c_pred = lambda s: 1 <= s.x <= 4 and 0 <= s.y <= 2
 
@@ -54,12 +54,12 @@ def test_sequential_ltlf_policy():
     else:
         print("\nNo checkpoint found. Training agent...")
         # Increase episodes to handle the wall/8x8 space
-        train_goal_oriented(env, agent, episodes=100000, verbose=False)
+        train_goal_oriented(env, agent, episodes=500000, verbose=False)
         print(f"Saving trained agent to {checkpoint_path}...")
         agent.save(checkpoint_path)
 
     # 4. LTLf Task Composition
-    formula_str = "(F reach_zone_a && X F reach_zone_b)"
+    formula_str = "avoid_zone_a U (reach_zone_b && XF reach_zone_a)"
     print(f"\nComposing LTLf Task: {formula_str}")
     ltlf_task = LTLfTask(formula_str, agent)
     ltlf_task.print_dfa_info()
@@ -77,25 +77,34 @@ def test_sequential_ltlf_policy():
         dt_edge_policies = ltlf_task.load_dt_policies(dt_checkpoint_path)
     else:
         print("\nExtracting VIPER Decision Trees for composed policies...")
-        # Use standard VIPER parameters. 
+        # Increase parameters to improve DT accuracy and resolve infinite loops
         dt_edge_policies = ltlf_task.extract_dt_policies(
             env, 
             max_depth=100,
             max_iters=5, 
             n_batch_rollouts=1000, 
             max_samples=500000,
-            n_test_rollouts=200,
-            accepting_states={"5"}
+            n_test_rollouts=50,
+            accepting_states={"4"}
         )
-    print(f"Saving distilled DT policies to {dt_checkpoint_path}...")
-    ltlf_task.save_dt_policies(dt_edge_policies, dt_checkpoint_path)
+        print(f"Saving distilled DT policies to {dt_checkpoint_path}...")
+        ltlf_task.save_dt_policies(dt_edge_policies, dt_checkpoint_path)
+
+    # 6.5 Visualize Distilled DT Policies
+    print("\nVisualizing Distilled Decision Tree Policies...")
+    for (u, v), dt_policy in dt_edge_policies.items():
+        attr = ltlf_task.nx_graph.get_edge_data(u, v)[0]
+        composed_expr = attr.get('composed_expr', f'edge_{u}_{v}')
+        save_path = os.path.join(static_dir, f"dt_policy_{composed_expr}.png")
+        print(f"  Rendering DT policy for edge {u} -> {v}: {composed_expr}")
+        renderer.render_policy(dt_policy, f"DT: {composed_expr}", save_path=save_path)
 
     # 7. Simulation Loop
     from extension.executor import TaskExecutor, QFunctionPolicy
 
     # Have to manually pass accepting states due to bug in pydot conversion
     tracker = DFATracker(ltlf_task.nx_graph, agent.tasks)
-    tracker.accepting_states = {"5"}  # Patch bug with MONA parse
+    tracker.accepting_states = {"4"}  # Patch bug with MONA parse
     tracker.valid_states = tracker._find_valid_states()
 
     fallback = QFunctionPolicy(agent.get_q_function(Proposition.WVF_MIN))

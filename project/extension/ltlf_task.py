@@ -28,7 +28,7 @@ class LTLfTask:
         
         # Get DOT string from ltlf2dfa
         dot_str = formula.to_dfa()
-        
+        print(dot_str)
         # Convert DOT to NetworkX MultiDiGraph
         pydot_graph = pydot.graph_from_dot_data(dot_str)[0]
         return nx.drawing.nx_pydot.from_pydot(pydot_graph)
