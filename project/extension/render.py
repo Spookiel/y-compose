@@ -35,13 +35,22 @@ class GridWorldRenderer:
         ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 
     def _draw_base_grid(self, ax):
-        """Draws the empty grid cells."""
-        for x in range(self.env.x_min, self.env.x_max + 1):
-            for y in range(self.env.y_min, self.env.y_max + 1):
-                cell_rect = patches.Rectangle(
-                    (x, y), 1, 1, 
-                    linewidth=1, edgecolor='gray', facecolor='white', alpha=0.3
-                )
+        """Draws the empty grid cells and walls."""
+        walls = getattr(self.env, 'walls', set())
+        for x in range(self.env.x_min, self.env.x_max):
+            for y in range(self.env.y_min, self.env.y_max):
+                if (x, y) in walls:
+                    # Draw wall
+                    cell_rect = patches.Rectangle(
+                        (x, y), 1, 1, 
+                        linewidth=1, edgecolor='black', facecolor='darkgray', alpha=1.0, zorder=10
+                    )
+                else:
+                    # Draw empty cell
+                    cell_rect = patches.Rectangle(
+                        (x, y), 1, 1, 
+                        linewidth=1, edgecolor='gray', facecolor='white', alpha=0.3
+                    )
                 ax.add_patch(cell_rect)
 
     def _draw_goals(self, ax, outline_only: bool = False):

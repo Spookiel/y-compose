@@ -36,4 +36,4 @@ class StepResult:
     is_terminal: bool
 
 RMAX: int = 1
-RMIN: int = -100
+RMIN: int = -1

@@ -1,18 +1,18 @@
 import sympy
 from typing import Dict, Callable, Union
+from enum import Enum
 
 from extension.base import RMAX, RMIN, StepResult, State
-from extension.proposition import Proposition
 
 class WVFRewardFunction:
     """
     Evaluates the WVF reward based on the physical environment outcome
     and the logical task semantics.
     """
-    def __init__(self, tasks: Dict[Proposition, Callable[[State], bool]]):
+    def __init__(self, tasks: Dict[Enum, Callable[[State], bool]]):
         self.tasks = tasks
 
-    def __call__(self, result: StepResult, task: Union[Proposition, sympy.Expr]) -> float:
+    def __call__(self, result: StepResult, task: Union[Enum, str, sympy.Expr]) -> float:
         """
         Enforces the strictly sparse Boolean reward bounds required by the WVF algebra.
         """
@@ -22,21 +22,26 @@ class WVFRewardFunction:
 
         # --- TERMINAL STATE LOGIC ---
         
-        if isinstance(task, Proposition):
+        if isinstance(task, str):
             # WVF_MAX: An omnipotent task where ANY terminal state is considered a success.
-            if task == Proposition.WVF_MAX:
+            if task == "WVF_MAX":
                 return RMAX
                 
             # WVF_MIN: A pessimistic task where ANY terminal state is considered a failure.
-            if task == Proposition.WVF_MIN:
+            if task == "WVF_MIN":
                 return RMIN
                 
+        if isinstance(task, Enum):
             # Specific Goal Logic: Success if the terminal state is inside the region, failure otherwise.
             if task in self.tasks:
                 success_predicate = self.tasks[task]
                 if success_predicate(result.next_state):
                     return RMAX
                 return RMIN
+            # We also check for global WVF bounds if passed as Enums for compatibility
+            if task.name == "WVF_MAX": return RMAX
+            if task.name == "WVF_MIN": return RMIN
+            
             raise ValueError(f"Unknown Proposition type {task}")
             
         if hasattr(task, 'subs'):
